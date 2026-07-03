@@ -1,18 +1,50 @@
-//
-//  CardView.swift
-//  PriksaRoemah
-//
-//  Created by Ignasius Holy Prasetya on 02/07/26.
-//
-
 import SwiftUI
 
-struct CardView: View {
+struct HouseCard: View {
+
+    let house: House
+
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        HStack(spacing: 14) {
+
+            // Thumbnail placeholder
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color(.systemGray5))
+                .frame(width: 60, height: 60)
+                .overlay(
+                    Image(systemName: "house.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(.secondary)
+                )
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(house.name)
+                    .font(.subheadline.bold())
+                    .lineLimit(1)
+
+                Text("Lt \(house.luasTanah) m²  ·  \(house.roomCount) ruangan")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Text("Rp \(house.harga)")
+                    .font(.caption)
+                    .foregroundStyle(.blue)
+                    .fontWeight(.medium)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.vertical, 6)
     }
 }
 
 #Preview {
-    CardView()
+    List {
+        HouseCard(house: House.dummyAll[0])
+        HouseCard(house: House.dummyAll[1])
+    }
 }

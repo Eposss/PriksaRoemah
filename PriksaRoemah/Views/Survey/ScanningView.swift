@@ -34,6 +34,12 @@ struct ScanningView: View {
                         Text(session.isRoomPlanScanning ? "Sedang scanning..." : "Siap scan")
                             .font(.subheadline)
                             .foregroundStyle(.white.opacity(0.8))
+                        if session.isRoomPlanScanning {
+                            Label("AI menganalisis \(session.currentRoomDetections.count) temuan",
+                                  systemImage: "waveform.path.ecg")
+                                .font(.caption2)
+                                .foregroundStyle(.white.opacity(0.7))
+                        }
                     }
                     Spacer()
                     Circle()
@@ -59,7 +65,9 @@ struct ScanningView: View {
 
                     Button {
                         if session.isRoomPlanScanning {
-                            session.roomPlan.stop()
+                            // keepSessionAlive: true → ARSession tetap jalan supaya ruangan
+                            // berikutnya masih dalam koordinat dunia yang sama (perlu untuk StructureBuilder)
+                            session.roomPlan.stop(keepSessionAlive: true)
                         } else {
                             session.roomPlan.start()
                         }

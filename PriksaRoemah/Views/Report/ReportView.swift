@@ -18,29 +18,22 @@ struct ReportView: View {
                 .padding(.horizontal)
 
                 if showIn3D {
-                    placeholder3D
+                    House3DView(usdzURL: house.usdzURL)
                 } else {
-                    FloorPlanGridView(rooms: house.rooms)
+                    FloorPlan2DView(wallSegments: house.wallSegments)
                         .padding(.horizontal)
                 }
 
                 metricsRow
                 Divider().padding(.horizontal)
+
+                if let report = house.overallReport {
+                    aiSummarySection(report)
+                    Divider().padding(.horizontal)
+                }
+
                 roomsList
                 orientationSection
-
-                // Link ke AI Analysis
-                NavigationLink {
-                    AIAnalysisView()
-                } label: {
-                    Label("Analyze wall defects", systemImage: "magnifyingglass.circle")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color(.systemGray6))
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                }
-                .foregroundStyle(.primary)
-                .padding(.horizontal)
 
                 Spacer(minLength: 32)
             }
@@ -92,11 +85,19 @@ struct ReportView: View {
                 .padding(.bottom, 8)
             ForEach(house.rooms) { room in
                 HStack(spacing: 12) {
+                    Circle()
+                        .fill(statusColor(for: room.aiReport))
+                        .frame(width: 8, height: 8)
                     Image(systemName: room.type.icon)
                         .foregroundStyle(.blue)
                         .frame(width: 24)
                     Text(room.name).font(.subheadline)
                     Spacer()
+                    if let score = room.aiReport?.conditionScore {
+                        Text("\(score)%")
+                            .font(.caption.bold())
+                            .foregroundStyle(.secondary)
+                    }
                     Text("Lantai \(room.floor)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -142,86 +143,62 @@ struct ReportView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
-    // MARK: - 3D placeholder
-    private var placeholder3D: some View {
-        RoundedRectangle(cornerRadius: 14)
-            .fill(Color(.systemGray6))
-            .frame(height: 260)
-            .overlay(
-                VStack(spacing: 8) {
-                    Image(systemName: "cube.transparent")
-                        .font(.system(size: 36))
-                        .foregroundStyle(.secondary)
-                    Text("3D View")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Text("Powered by RealityKit")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
+    // MARK: - AI Summary (Property Health — step 7/11 di wireframe)
+    private func aiSummarySection(_ report: AIReport) -> some View {
+        VStack(spacing: 14) {
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Property Health").font(.caption).foregroundStyle(.secondary)
+                    Text("\(report.conditionScore)")
+                        .font(.system(size: 44, weight: .bold, design: .rounded))
+                    + Text("/100").font(.headline).foregroundStyle(.secondary)
                 }
-            )
-            .padding(.horizontal)
-    }
-}
+                Spacer()
+                Text(report.priority.rawValue.uppercased())
+                    .font(.caption.bold())
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 6)
+                    .background(priorityColor(report.priority).opacity(0.15))
+                    .foregroundStyle(priorityColor(report.priority))
+                    .clipShape(Capsule())
+            }
+            Text(report.summary)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-// MARK: - Floor Plan Grid (fix: LazyVGrid, bukan GeometryReader)
-// GeometryReader dalam ScrollView bisa dapat undefined height → view tidak muncul.
-// LazyVGrid otomatis menghitung ukurannya sendiri berdasarkan konten.
-struct FloorPlanGridView: View {
-    let rooms: [Room]
-
-    private let columns = [GridItem(.flexible(), spacing: 1), GridItem(.flexible(), spacing: 1)]
-
-    var body: some View {
-        Group {
-            if rooms.isEmpty {
-                emptyState
-            } else {
-                LazyVGrid(columns: columns, spacing: 1) {
-                    ForEach(rooms) { room in
-                        roomCell(room)
+            if !report.recommendation.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(report.recommendation, id: \.self) { rec in
+                        Label(rec, systemImage: "checkmark.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.blue)
                     }
                 }
-                .background(Color(.systemGray4)) // Jadi "grid lines"
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+        .padding()
+        .background(Color(.systemGray6))
         .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(.systemGray3), lineWidth: 2))
+        .padding(.horizontal)
     }
 
-    private func roomCell(_ room: Room) -> some View {
-        VStack(spacing: 5) {
-            Image(systemName: room.type.icon)
-                .font(.system(size: 16))
-                .foregroundStyle(.secondary)
-                .padding(8)
-                .background(Circle().fill(Color(.systemBackground)))
-            Text(room.name)
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-            Text("Lt \(room.floor)")
-                .font(.system(size: 9))
-                .foregroundStyle(.tertiary)
+    private func priorityColor(_ p: Priority) -> Color {
+        switch p {
+        case .high:   return .red
+        case .medium: return .orange
+        case .low:    return .green
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: 100)
-        .background(Color(.systemBackground))
     }
 
-    private var emptyState: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "square.grid.2x2")
-                .font(.system(size: 32))
-                .foregroundStyle(.tertiary)
-            Text("Belum ada ruangan terscan")
-                .font(.subheadline)
-                .foregroundStyle(.tertiary)
+    private func statusColor(for report: AIReport?) -> Color {
+        guard let report else { return Color(.systemGray3) }
+        switch report.priority {
+        case .low:    return .green
+        case .medium: return .orange
+        case .high:   return .red
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: 200)
-        .background(Color(.systemBackground))
     }
 }
 

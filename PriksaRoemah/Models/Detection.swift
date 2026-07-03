@@ -1,6 +1,6 @@
 //
 //  Detection.swift
-//  PriksaRoemah
+//  HVMAN
 //
 //  Created by Ignasius Holy Prasetya on 02/07/26.
 //
@@ -8,7 +8,7 @@
 import Foundation
 import CoreGraphics
 
-enum Severity: String {
+enum Severity: String, Hashable {
 
     case low
     case medium
@@ -17,7 +17,7 @@ enum Severity: String {
 
 }
 
-struct Detection: Identifiable {
+struct Detection: Identifiable, Hashable {
 
     let id = UUID()
 

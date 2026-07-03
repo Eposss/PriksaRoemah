@@ -55,17 +55,24 @@ struct RoomInfoView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Save") {
-                    let house = session.buildHouse()
-                    session.savedHouses.insert(house, at: 0)
-                    savedHouse = house
-                    session.startNewSurvey()
-                    navigateToReport = true
+                if session.isBuildingHouse {
+                    ProgressView()
+                } else {
+                    Button("Save") {
+                        Task {
+                            let house = await session.buildHouse()
+                            session.savedHouses.insert(house, at: 0)
+                            savedHouse = house
+                            session.startNewSurvey()
+                            navigateToReport = true
+                        }
+                    }
+                    .fontWeight(.semibold)
+                    .disabled(!canSave)
                 }
-                .fontWeight(.semibold)
-                .disabled(!canSave)
             }
         }
+        .disabled(session.isBuildingHouse)
         .navigationDestination(isPresented: $navigateToReport) {
             if let house = savedHouse {
                 ReportView(house: house)

@@ -5,6 +5,7 @@ struct Room: Identifiable, Hashable {
     var name: String
     var type: RoomType
     var floor: String          // "1", "2", dst
+    var aiReport: AIReport?    // hasil AI otomatis dari scan ruangan ini
 }
 
 enum RoomType: String, CaseIterable, Identifiable {
