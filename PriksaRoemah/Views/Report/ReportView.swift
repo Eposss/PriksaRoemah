@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ReportView: View {
+
     let house: House
 
     @State private var showIn3D     = false
@@ -18,22 +19,24 @@ struct ReportView: View {
                 .padding(.horizontal)
 
                 if showIn3D {
+                    // ✅ Fix bug: sebelumnya di sini ada placeholder statis
+                    // ("3D View / Powered by RealityKit") yang tidak pernah
+                    // baca house.usdzURL sama sekali. House3DView yang benar
+                    // ini pakai QuickLook untuk render USDZ hasil StructureBuilder,
+                    // dan baru fallback ke empty state kalau usdzURL memang nil.
                     House3DView(usdzURL: house.usdzURL)
+                        .frame(height: 320)
                 } else {
                     FloorPlan2DView(wallSegments: house.wallSegments)
+                        .frame(height: 260)
                         .padding(.horizontal)
                 }
 
                 metricsRow
+
                 Divider().padding(.horizontal)
 
-                if let report = house.overallReport {
-                    aiSummarySection(report)
-                    Divider().padding(.horizontal)
-                }
-
                 roomsList
-                orientationSection
 
                 Spacer(minLength: 32)
             }
@@ -53,7 +56,38 @@ struct ReportView: View {
         }
     }
 
+    // MARK: - Rooms list
+
+    private var roomsList: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Rooms (\(house.rooms.count))")
+                .font(.subheadline.bold())
+                .padding(.horizontal)
+                .padding(.bottom, 8)
+
+            ForEach(house.rooms, id: \.id) { (room: Room) in
+                HStack(spacing: 12) {
+                    Image(systemName: room.type.icon)
+                        .foregroundStyle(.blue)
+                        .frame(width: 24)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(room.name).font(.subheadline)
+                        Text("Lantai \(room.floor)")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 10)
+                Divider().padding(.leading, 52)
+            }
+        }
+    }
+
     // MARK: - Metrics
+
     private var metricsRow: some View {
         HStack(spacing: 0) {
             metricCell(value: house.formattedFloorArea, label: "Floor area")
@@ -75,135 +109,8 @@ struct ReportView: View {
         }
         .frame(maxWidth: .infinity)
     }
-
-    // MARK: - Rooms
-    private var roomsList: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Rooms (\(house.rooms.count))")
-                .font(.subheadline.bold())
-                .padding(.horizontal)
-                .padding(.bottom, 8)
-            ForEach(house.rooms) { room in
-                HStack(spacing: 12) {
-                    Circle()
-                        .fill(statusColor(for: room.aiReport))
-                        .frame(width: 8, height: 8)
-                    Image(systemName: room.type.icon)
-                        .foregroundStyle(.blue)
-                        .frame(width: 24)
-                    Text(room.name).font(.subheadline)
-                    Spacer()
-                    if let score = room.aiReport?.conditionScore {
-                        Text("\(score)%")
-                            .font(.caption.bold())
-                            .foregroundStyle(.secondary)
-                    }
-                    Text("Lantai \(room.floor)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal)
-                .padding(.vertical, 10)
-                Divider().padding(.leading, 52)
-            }
-        }
-    }
-
-    // MARK: - Orientation
-    private var orientationSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Orientation")
-                .font(.subheadline.bold())
-                .padding(.horizontal)
-            HStack(spacing: 12) {
-                orientationCard(direction: "N", label: "North-East (NE)", isActive: true)
-                orientationCard(direction: "E", label: "East",            isActive: false)
-            }
-            .padding(.horizontal)
-        }
-    }
-
-    private func orientationCard(direction: String, label: String, isActive: Bool) -> some View {
-        VStack(spacing: 6) {
-            ZStack {
-                Circle()
-                    .fill(isActive ? Color.blue.opacity(0.12) : Color(.systemGray6))
-                    .frame(width: 40, height: 40)
-                Text(direction)
-                    .font(.headline.bold())
-                    .foregroundStyle(isActive ? .blue : .secondary)
-            }
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(12)
-        .background(Color(.systemGray6))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-
-    // MARK: - AI Summary (Property Health — step 7/11 di wireframe)
-    private func aiSummarySection(_ report: AIReport) -> some View {
-        VStack(spacing: 14) {
-            HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Property Health").font(.caption).foregroundStyle(.secondary)
-                    Text("\(report.conditionScore)")
-                        .font(.system(size: 44, weight: .bold, design: .rounded))
-                    + Text("/100").font(.headline).foregroundStyle(.secondary)
-                }
-                Spacer()
-                Text(report.priority.rawValue.uppercased())
-                    .font(.caption.bold())
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 6)
-                    .background(priorityColor(report.priority).opacity(0.15))
-                    .foregroundStyle(priorityColor(report.priority))
-                    .clipShape(Capsule())
-            }
-            Text(report.summary)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            if !report.recommendation.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(report.recommendation, id: \.self) { rec in
-                        Label(rec, systemImage: "checkmark.circle.fill")
-                            .font(.caption)
-                            .foregroundStyle(.blue)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .padding()
-        .background(Color(.systemGray6))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .padding(.horizontal)
-    }
-
-    private func priorityColor(_ p: Priority) -> Color {
-        switch p {
-        case .high:   return .red
-        case .medium: return .orange
-        case .low:    return .green
-        }
-    }
-
-    private func statusColor(for report: AIReport?) -> Color {
-        guard let report else { return Color(.systemGray3) }
-        switch report.priority {
-        case .low:    return .green
-        case .medium: return .orange
-        case .high:   return .red
-        }
-    }
 }
 
 #Preview {
-    NavigationStack {
-        ReportView(house: House.dummyAll[0])
-    }
+    NavigationStack { ReportView(house: House.dummyAll[0]) }
 }

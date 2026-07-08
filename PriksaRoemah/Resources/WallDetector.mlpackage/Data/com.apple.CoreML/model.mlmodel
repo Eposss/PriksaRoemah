@@ -5,22 +5,22 @@
 var_909*
 
 ÐA €¢²
-uUltralytics best model trained on /Users/holpras/Challenge 4/extracted_dataset/mould-detection-Aaron.yolov8/data.yaml8.4.82Ultralytics"2AGPL-3.0 License (https://ultralytics.com/license)¢
-stride32¢
+uUltralytics best model trained on /Users/holpras/Challenge 4/extracted_dataset/mould-detection-Aaron.yolov8/data.yaml8.4.82Ultralytics"2AGPL-3.0 License (https://ultralytics.com/license)¢
 imgsz
-[640, 640]¢
-
-batch1¢
-names{0: 'mould'}¢F
-args>{'batch': 1, 'quantize': None, 'dynamic': False, 'nms': False}¢:
-,com.github.apple.coremltools.conversion_date
-2026-07-02¢
-end2endFalse¢4
-#com.github.apple.coremltools.sourcetorch==2.12.1¢
-taskdetect¢$
+[640, 640]¢
+stride32¢$
 docshttps://docs.ultralytics.com¢:
-+com.github.apple.coremltools.source_dialectTorchScript¢
-channels3¢+
+,com.github.apple.coremltools.conversion_date
+2026-07-02¢
+
+batch1¢
+channels3¢4
+#com.github.apple.coremltools.sourcetorch==2.12.1¢F
+args>{'batch': 1, 'quantize': None, 'dynamic': False, 'nms': False}¢
+taskdetect¢:
++com.github.apple.coremltools.source_dialectTorchScript¢
+names{0: 'mould'}¢
+end2endFalse¢+
 $com.github.apple.coremltools.version9.0¢"
 date2026-07-02T23:16:05.592403²Ç½Ø»
 mainÎ»
