@@ -10,9 +10,22 @@
 		2A0FF0502FF7934100635FDF /* PriksaRoemah.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PriksaRoemah.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		F8A949C32FFDFCB2005739CD /* Exceptions for "PriksaRoemah" folder in "PriksaRoemah" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Resources/WallDetector.mlpackage,
+			);
+			target = 2A0FF04F2FF7934100635FDF /* PriksaRoemah */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		2A0FF0522FF7934100635FDF /* PriksaRoemah */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F8A949C32FFDFCB2005739CD /* Exceptions for "PriksaRoemah" folder in "PriksaRoemah" target */,
+			);
 			path = PriksaRoemah;
 			sourceTree = "<group>";
 		};
@@ -253,7 +266,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 5LCPB3DDWV;
+				DEVELOPMENT_TEAM = XJYXR6QY65;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Camera is used to scan rooms and detect house defects.";
@@ -286,7 +299,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 5LCPB3DDWV;
+				DEVELOPMENT_TEAM = XJYXR6QY65;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Camera is used to scan rooms and detect house defects.";

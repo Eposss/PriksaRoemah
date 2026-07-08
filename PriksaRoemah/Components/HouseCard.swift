@@ -41,10 +41,3 @@ struct HouseCard: View {
         .padding(.vertical, 6)
     }
 }
-
-#Preview {
-    List {
-        HouseCard(house: House.dummyAll[0])
-        HouseCard(house: House.dummyAll[1])
-    }
-}

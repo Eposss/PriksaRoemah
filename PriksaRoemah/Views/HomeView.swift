@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeView: View {
 
     @StateObject private var session = SurveySession()
+    @State private var showNewSurvey = false
 
     var body: some View {
         NavigationStack {
@@ -16,18 +17,23 @@ struct HomeView: View {
             .navigationTitle("Collections")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink {
-                        InstructionView(session: session)
+                    // ✅ FIX BUG 3: startNewSurvey() dipanggil di sini,
+                    // BUKAN di InstructionView.onAppear.
+                    Button {
+                        session.startNewSurvey()
+                        showNewSurvey = true
                     } label: {
                         Image(systemName: "plus")
                             .fontWeight(.semibold)
                     }
                 }
             }
+            .navigationDestination(isPresented: $showNewSurvey) {
+                InstructionView(session: session)
+            }
         }
     }
 
-    // MARK: - Empty state
     private var emptyState: some View {
         VStack(spacing: 24) {
             Spacer()
@@ -41,8 +47,9 @@ struct HomeView: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
-            NavigationLink {
-                InstructionView(session: session)
+            Button {
+                session.startNewSurvey()
+                showNewSurvey = true
             } label: {
                 Text("Start Survey")
                     .bold()
@@ -58,7 +65,6 @@ struct HomeView: View {
         .padding()
     }
 
-    // MARK: - Collection list
     private var collectionList: some View {
         List {
             ForEach(session.savedHouses) { house in
@@ -75,6 +81,4 @@ struct HomeView: View {
     }
 }
 
-#Preview {
-    HomeView()
-}
+#Preview { HomeView() }

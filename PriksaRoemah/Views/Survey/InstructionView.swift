@@ -6,9 +6,9 @@ struct InstructionView: View {
 
     private let steps = [
         ("Scan satu ruangan", "Scan satu ruangan dalam sekali sesi.", "cube.transparent"),
-        ("Jalan pelan",        "Jalan pelan mengelilingi ruangan.",   "figure.walk"),
-        ("Pastikan cahaya",    "Pastikan pencahayaan cukup terang.",   "sun.max"),
-        ("Jangan halangi",     "Jangan halangi kamera saat scanning.", "camera")
+        ("Jalan pelan",       "Jalan pelan mengelilingi ruangan.",    "figure.walk"),
+        ("Pastikan cahaya",   "Pastikan pencahayaan cukup terang.",   "sun.max"),
+        ("Jangan halangi",    "Jangan halangi kamera saat scanning.", "camera")
     ]
 
     var body: some View {
@@ -43,11 +43,10 @@ struct InstructionView: View {
 
             Spacer()
 
-            // Navigasi langsung ke ScanningView — room type/name dipilih SETELAH scan
             NavigationLink {
                 ScanningView(session: session)
             } label: {
-                Text("Start")
+                Text("Mulai Scan")
                     .bold()
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -59,15 +58,12 @@ struct InstructionView: View {
         .padding()
         .navigationTitle("Instruction")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            // Reset session setiap kali mulai survey baru
-            session.startNewSurvey()
-        }
+        // ✅ FIX BUG 3: startNewSurvey() DIHAPUS dari sini.
+        // Sekarang dipanggil dari HomeView saat user tap "mulai survey baru",
+        // sehingga data tidak ter-clear kalau user navigasi balik ke halaman ini.
     }
 }
 
 #Preview {
-    NavigationStack {
-        InstructionView(session: SurveySession())
-    }
+    NavigationStack { InstructionView(session: SurveySession()) }
 }
