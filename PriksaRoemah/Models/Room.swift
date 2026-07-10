@@ -4,7 +4,16 @@ struct Room: Identifiable, Hashable {
     var id: UUID = UUID()
     var name: String
     var type: RoomType
-    var floor: String          // "1", "2", dst
+
+    /// Dimensi ruangan dari bounding box hasil RoomPlan (mis. "3 x 4 m").
+    /// 0 kalau belum ke-compute (mis. data dummy).
+    var widthM: Double = 0
+    var lengthM: Double = 0
+
+    var formattedDimensions: String {
+        guard widthM > 0, lengthM > 0 else { return "– x – m" }
+        return String(format: "%.0f x %.0f m", widthM, lengthM)
+    }
 }
 
 enum RoomType: String, CaseIterable, Identifiable {

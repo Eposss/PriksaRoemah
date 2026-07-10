@@ -42,7 +42,7 @@ struct FloorPlan2DView: View {
                     }
                     context.stroke(path, with: .color(.primary), style: StrokeStyle(lineWidth: 4, lineCap: .round))
                 }
-                .frame(height: 300)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color(.systemGray6))
             }
         }
@@ -59,8 +59,7 @@ struct FloorPlan2DView: View {
                 .font(.subheadline)
                 .foregroundStyle(.tertiary)
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: 200)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemGray6))
     }
 }

@@ -1,40 +1,64 @@
 import Foundation
 
-// Dummy data untuk preview & collection awal
 extension House {
+
     static let dummyAll: [House] = [
+
         House(
-            name: "Rumah Cluster Anggrek",
-            developer: "BSD City",
-            harga: "1.800.000.000",
-            luasTanah: "90",
-            catatan: "Kondisi bagus, dekat sekolah",
-            rooms: [
-                Room(name: "Living Room", type: .livingRoom, floor: "1"),
-                Room(name: "Kitchen",     type: .kitchen,    floor: "1"),
-                Room(name: "Bedroom 1",   type: .bedroom,    floor: "1"),
-                Room(name: "Bathroom",    type: .bathroom,   floor: "1")
-            ],
-            floorAreaSqM: 12.27,
-            wallAreaSqM: 12.27,
-            ceilingHeightM: 3.5
+            name: "Cluster Magnolia",
+            developer: "HVMAN Property",
+            harga: "Rp 1.800.000.000",
+            luasTanah: "90 m²",
+            catatan: "Rumah contoh untuk preview survey.",
+            facing: .northEast,
+            floors: [
+                Floor(
+                    label: "Floor 1",
+                    rooms: [
+                        Room(name: "Living Room", type: .livingRoom, widthM: 4, lengthM: 5),
+                        Room(name: "Kitchen", type: .kitchen, widthM: 3, lengthM: 3),
+                        Room(name: "Master Bedroom", type: .bedroom, widthM: 3, lengthM: 4),
+                        Room(name: "Bathroom", type: .bathroom, widthM: 2, lengthM: 2)
+                    ],
+                    floorAreaSqM: 72,
+                    wallAreaSqM: 148,
+                    ceilingHeightM: 3.0,
+                    notes: "Bahan bangunan: bata merah. Tidak ada jamur."
+                )
+            ]
         ),
+
         House(
-            name: "Rumah Alam Sutera",
-            developer: "Sinar Mas Land",
-            harga: "2.300.000.000",
-            luasTanah: "120",
-            catatan: "",
-            rooms: [
-                Room(name: "Living Room", type: .livingRoom,  floor: "1"),
-                Room(name: "Kitchen",     type: .kitchen,     floor: "1"),
-                Room(name: "Bedroom 1",   type: .bedroom,     floor: "1"),
-                Room(name: "Bedroom 2",   type: .bedroom,     floor: "2"),
-                Room(name: "Bathroom",    type: .bathroom,    floor: "1")
-            ],
-            floorAreaSqM: 18.0,
-            wallAreaSqM: 20.5,
-            ceilingHeightM: 3.2
+            name: "The Avani Residence",
+            developer: "HVMAN Property",
+            harga: "Rp 2.450.000.000",
+            luasTanah: "120 m²",
+            catatan: "Unit dummy untuk dashboard dan report.",
+            facing: .east,
+            floors: [
+                Floor(
+                    label: "Floor 1",
+                    rooms: [
+                        Room(name: "Living Room", type: .livingRoom, widthM: 4, lengthM: 5),
+                        Room(name: "Kitchen", type: .kitchen, widthM: 3, lengthM: 3),
+                        Room(name: "Bedroom 1", type: .bedroom, widthM: 3, lengthM: 4),
+                        Room(name: "Garage", type: .garage, widthM: 3, lengthM: 5)
+                    ],
+                    floorAreaSqM: 60,
+                    wallAreaSqM: 120,
+                    ceilingHeightM: 3.2
+                ),
+                Floor(
+                    label: "Floor 2",
+                    rooms: [
+                        Room(name: "Bedroom 2", type: .bedroom, widthM: 4, lengthM: 4),
+                        Room(name: "Bathroom", type: .bathroom, widthM: 2, lengthM: 2)
+                    ],
+                    floorAreaSqM: 36,
+                    wallAreaSqM: 64,
+                    ceilingHeightM: 3.0
+                )
+            ]
         )
     ]
 }

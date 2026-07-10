@@ -18,6 +18,7 @@ struct DocumentationCategoryView: View {
     @State private var isSelecting = false
     @State private var selectedIDs: Set<UUID> = []
     @State private var showAddSheet = false
+    @State private var showDeleteConfirm = false
 
     private var photos: [DocumentationPhoto] {
         session.savedHouses.first { $0.id == houseID }?
@@ -48,9 +49,7 @@ struct DocumentationCategoryView: View {
         .safeAreaInset(edge: .bottom) {
             if isSelecting && !selectedIDs.isEmpty {
                 Button(role: .destructive) {
-                    session.deleteDocumentationPhotos(houseID: houseID, photoIDs: selectedIDs)
-                    selectedIDs.removeAll()
-                    isSelecting = false
+                    showDeleteConfirm = true
                 } label: {
                     Label("Hapus \(selectedIDs.count) foto", systemImage: "trash")
                         .frame(maxWidth: .infinity)
@@ -77,6 +76,16 @@ struct DocumentationCategoryView: View {
         }
         .sheet(isPresented: $showAddSheet) {
             AddDocumentationPhotoSheet(session: session, houseID: houseID, defaultRoomType: roomType)
+        }
+        .alert("Hapus foto terpilih?", isPresented: $showDeleteConfirm) {
+            Button("Batal", role: .cancel) {}
+            Button("Hapus", role: .destructive) {
+                session.deleteDocumentationPhotos(houseID: houseID, photoIDs: selectedIDs)
+                selectedIDs.removeAll()
+                isSelecting = false
+            }
+        } message: {
+            Text("Tindakan ini tidak bisa dibatalkan dan foto akan dihapus permanen.")
         }
     }
 

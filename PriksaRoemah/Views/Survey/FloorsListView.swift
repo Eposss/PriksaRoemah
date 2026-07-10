@@ -5,18 +5,20 @@
 //  Created by Ignasius Holy Prasetya on 08/07/26.
 //
 
-
 import SwiftUI
 
 /// Halaman "Floors" — muncul setelah tap 1 survey dari HomeView.
-/// List semua lantai yang sudah discan untuk House ini.
 struct FloorsListView: View {
 
-    let house: House
+    @ObservedObject var session: SurveySession
+    let houseID: UUID
+    @Binding var path: [SurveyRoute]
 
     @State private var isSelecting = false
     @State private var selectedFloorIDs: Set<UUID> = []
     @State private var showDeleteConfirm = false
+
+    private var house: House? { session.savedHouses.first { $0.id == houseID } }
 
     private let columns = [
         GridItem(.flexible(), spacing: 14),
@@ -24,14 +26,34 @@ struct FloorsListView: View {
     ]
 
     var body: some View {
-        ScrollView {
-            LazyVGrid(columns: columns, spacing: 14) {
-                addFloorTile
-                ForEach(house.floors) { floor in
-                    floorTile(floor)
-                }
+        Group {
+            if let house {
+                content(house: house)
+            } else {
+                Text("Survey tidak ditemukan.")
+                    .foregroundStyle(.secondary)
             }
-            .padding()
+        }
+    }
+
+    private func content(house: House) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                infoCard(house: house)
+
+                Text("Floors")
+                    .font(.headline)
+                    .padding(.horizontal)
+
+                LazyVGrid(columns: columns, spacing: 14) {
+                    addFloorTile
+                    ForEach(house.floors) { floor in
+                        floorTile(house: house, floor: floor)
+                    }
+                }
+                .padding(.horizontal)
+            }
+            .padding(.vertical)
         }
         .navigationTitle(house.name)
         .navigationBarTitleDisplayMode(.inline)
@@ -62,38 +84,88 @@ struct FloorsListView: View {
         .alert("Hapus lantai terpilih?", isPresented: $showDeleteConfirm) {
             Button("Batal", role: .cancel) {}
             Button("Hapus", role: .destructive) {
-                // Catatan: House dipassing sebagai `let` (bukan Binding) di sini.
-                // Untuk beneran menghapus & persist, FloorsListView perlu terima
-                // Binding<House> (atau akses ke SurveySession/storage) dari caller —
-                // tempat ini baru nyiapin UI-nya, logic hapus-nya nunggu keputusan
-                // soal di mana House disimpan setelah save (in-memory vs storage).
+                session.deleteFloors(houseID: houseID, floorIDs: selectedFloorIDs)
+                selectedFloorIDs.removeAll()
+                isSelecting = false
             }
         } message: {
             Text("Tindakan ini tidak bisa dibatalkan dan semua data terkait akan dihapus permanen.")
         }
     }
 
+    // MARK: - Info card (House Facing — otomatis dari compass, read-only + Documentation)
+
+    private func infoCard(house: House) -> some View {
+        VStack(spacing: 0) {
+            HStack {
+                Image(systemName: "location.north.fill")
+                    .foregroundStyle(.orange)
+                    .frame(width: 24)
+                Text("House Facing")
+                    .foregroundStyle(.primary)
+                Spacer()
+                Text(house.facing?.displayName ?? "Not detected")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.secondary)
+            }
+            .padding()
+
+            Divider().padding(.leading, 52)
+
+            NavigationLink {
+                DocumentationView(session: session, houseID: houseID)
+            } label: {
+                HStack {
+                    Image(systemName: "photo.stack.fill")
+                        .foregroundStyle(.orange)
+                        .frame(width: 24)
+                    Text("Documentation")
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .padding()
+            }
+        }
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.primary.opacity(0.08)))
+        .padding(.horizontal)
+    }
+
     // MARK: - Tiles
+    //
+    // addFloorTile punya Text label kosong (opacity 0) di bawah kotaknya supaya
+    // total tinggi tile sama persis dengan floorTile (yang punya label "Floor N")
+    // — tanpa ini kedua kolom grid jadi beda tinggi & kelihatan tidak simetris.
 
     private var addFloorTile: some View {
         Button {
-            // TODO: mulai sesi scan lantai baru untuk House yang sudah tersimpan ini.
-            // Butuh desain terpisah karena SurveySession saat ini dibangun untuk
-            // alur "1 survey baru dari awal", bukan "nambah lantai ke House lama".
+            session.startNextFloor()
+            session.currentFloorNumber = (house?.floors.count ?? 0) + 1
+            path.append(.instruction(houseID: houseID))
         } label: {
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color(.systemGray6))
-                .aspectRatio(1, contentMode: .fit)
-                .overlay(
-                    Image(systemName: "plus")
-                        .font(.system(size: 28, weight: .medium))
-                        .foregroundStyle(.secondary)
-                )
+            VStack(spacing: 8) {
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color(.secondarySystemGroupedBackground))
+                    .aspectRatio(1, contentMode: .fit)
+                    .overlay(
+                        Image(systemName: "plus")
+                            .font(.system(size: 28, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    )
+                    .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.primary.opacity(0.08)))
+                Text(" ")
+                    .font(.caption.weight(.medium))
+                    .opacity(0)
+            }
         }
         .buttonStyle(.plain)
     }
 
-    private func floorTile(_ floor: Floor) -> some View {
+    private func floorTile(house: House, floor: Floor) -> some View {
         let isSelected = selectedFloorIDs.contains(floor.id)
 
         return Group {
@@ -102,7 +174,7 @@ struct FloorsListView: View {
                     .buttonStyle(.plain)
             } else {
                 NavigationLink {
-                    ReportView(house: house, floor: floor)
+                    ReportView(session: session, houseID: house.id, floorID: floor.id)
                 } label: {
                     floorTileContent(floor, isSelected: false)
                 }
@@ -115,15 +187,12 @@ struct FloorsListView: View {
         VStack(spacing: 8) {
             ZStack(alignment: .topTrailing) {
                 RoundedRectangle(cornerRadius: 14)
-                    .fill(Color(.systemGray6))
+                    .fill(Color(.secondarySystemGroupedBackground))
                     .aspectRatio(1, contentMode: .fit)
-                    .overlay(
-                        FloorPlan2DView(wallSegments: floor.wallSegments)
-                            .padding(6)
-                    )
+                    .overlay(FloorPlan2DView(wallSegments: floor.wallSegments).padding(6))
                     .overlay(
                         RoundedRectangle(cornerRadius: 14)
-                            .stroke(isSelected ? Color.blue : .clear, lineWidth: 3)
+                            .strokeBorder(isSelected ? Color.blue : Color.primary.opacity(0.08), lineWidth: isSelected ? 3 : 1)
                     )
 
                 if isSelecting {
@@ -149,7 +218,8 @@ struct FloorsListView: View {
 }
 
 #Preview {
-    NavigationStack {
-        FloorsListView(house: House.dummyAll[1])
+    let session = SurveySession()
+    return NavigationStack {
+        FloorsListView(session: session, houseID: session.savedHouses[1].id, path: .constant([]))
     }
 }

@@ -64,18 +64,25 @@ struct DocumentationView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 16) {
             Image(systemName: "photo.stack")
-                .font(.system(size: 48))
-                .foregroundStyle(.secondary)
-            Text("Belum ada dokumentasi")
-                .font(.headline)
-            Text("Tap tombol + untuk menambah foto pertama.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(.system(size: 36))
+                .foregroundStyle(.orange)
+                .frame(width: 84, height: 84)
+                .background(Color.orange.opacity(0.12), in: Circle())
+
+            VStack(spacing: 6) {
+                Text("Belum ada dokumentasi")
+                    .font(.headline)
+                Text("Tap tombol + untuk menambah foto pertama.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
         }
         .frame(maxWidth: .infinity)
-        .padding(.top, 80)
+        .padding(.horizontal, 32)
+        .padding(.top, 100)
     }
 
     private func categorySection(house: House, type: RoomType, photos: [DocumentationPhoto]) -> some View {

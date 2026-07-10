@@ -3,6 +3,8 @@ import SwiftUI
 struct InstructionView: View {
 
     @ObservedObject var session: SurveySession
+    var houseID: UUID? = nil
+    @Binding var path: [SurveyRoute]
 
     private let steps = [
         ("Scan satu ruangan", "Scan satu ruangan dalam sekali sesi.", "cube.transparent"),
@@ -43,8 +45,8 @@ struct InstructionView: View {
 
             Spacer()
 
-            NavigationLink {
-                ScanningView(session: session)
+            Button {
+                path.append(.scanning(houseID: houseID))
             } label: {
                 Text("Mulai Scan")
                     .bold()
@@ -65,5 +67,5 @@ struct InstructionView: View {
 }
 
 #Preview {
-    NavigationStack { InstructionView(session: SurveySession()) }
+    NavigationStack { InstructionView(session: SurveySession(), path: .constant([])) }
 }
