@@ -79,7 +79,7 @@ struct ReportView: View {
                         House3DView(usdzURL: floor.usdzURL)
                             .frame(height: 300)
                     } else {
-                        FloorPlan2DView(wallSegments: floor.wallSegments)
+                        FloorPlan2DView(wallSegments: floor.wallSegments, rooms: floor.rooms)
                             .frame(height: 300)
                             .padding(.horizontal, 30)
                     }

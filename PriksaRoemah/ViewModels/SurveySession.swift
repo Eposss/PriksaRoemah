@@ -89,29 +89,29 @@ final class SurveySession: ObservableObject {
             ? label!
             : "Floor \(currentFloorNumber)"
 
-        // Dimensi tiap ruangan dari bounding box wall segment hasil RoomPlan
-        // ruangan itu sendiri (bukan gabungan seluruh lantai).
-        let rooms: [Room] = currentFloorRooms.map { scanned in
-            var widthM: Double = 0
-            var lengthM: Double = 0
-            if let captured = scanned.capturedRoom {
-                let segments = FloorPlanGeometry.wallSegments(from: captured)
-                let bounds   = FloorPlanGeometry.bounds(of: segments)
-                widthM  = Double(bounds.width)
-                lengthM = Double(bounds.height)
-            }
-            return Room(name: scanned.name, type: scanned.type, widthM: widthM, lengthM: lengthM)
-        }
-
         let capturedRoomsForFloor = roomPlan.extractCompletedRoomsForFloor()
 
         var usdzURL: URL?
         var wallSegments: [WallSegment2D] = []
 
+        // Titik tengah tiap ruangan diambil dari CapturedStructure.sections
+        // (BUKAN dari CapturedRoom.identifier matching — percobaan sebelumnya
+        // gagal karena StructureBuilder nggak menjamin identifier tetap sama
+        // antar CapturedRoom input & output, jadi lookup-nya diam-diam gagal
+        // & fallback ke koordinat lokal yang belum di-align, makanya semua
+        // label numpuk di 1 titik). `structure.sections[i].center` adalah
+        // properti dari CapturedStructure itu sendiri — satu object yang sama
+        // dengan yang punya `structure.walls` (yang sudah pasti di koordinat
+        // gabungan karena dipakai langsung buat gambar wallSegments di atas),
+        // jadi frame koordinatnya nggak ambigu kayak CapturedRoom.walls yang
+        // bisa lokal atau global tergantung sumbernya.
+        var sections: [CapturedStructure.Section] = []
+
         if !capturedRoomsForFloor.isEmpty {
             do {
                 let structure = try await roomPlan.buildStructure(from: capturedRoomsForFloor)
                 wallSegments  = FloorPlanGeometry.wallSegments(from: structure)
+                sections      = structure.sections
                 let url       = FileManager.default.temporaryDirectory
                     .appendingPathComponent("\(UUID().uuidString).usdz")
                 try structure.export(to: url)
@@ -125,7 +125,41 @@ final class SurveySession: ObservableObject {
                     try? first.export(to: url)
                     usdzURL = url
                 }
+                // StructureBuilder gagal -> nggak ada section teralign sama
+                // sekali. Ini cuma kepakai kalau cuma 1 ruangan (wallSegments
+                // juga fallback ke room pertama di atas), jadi center-nya
+                // dibiarkan 0,0 di bawah — nggak ada ruangan lain buat numpuk
+                // bareng jadi labelnya tetap kebaca di tengah 1 denah itu.
             }
+        }
+
+        // widthM/lengthM dihitung dari bounding box CapturedRoom mentah tiap
+        // ruangan (ukuran nggak berubah kena rotasi/translasi align, jadi
+        // aman dipakai walau belum di-align) — dipasangkan by INDEX ke
+        // currentFloorRooms karena keduanya selalu 1:1 (di-append bareng tiap
+        // commitCurrentRoom()). Center-nya dari `sections[index].center`,
+        // dipasangkan by INDEX juga karena 1 CapturedRoom input -> 1 Section
+        // output berurutan.
+        let rooms: [Room] = currentFloorRooms.enumerated().map { index, scanned in
+            var widthM: Double = 0
+            var lengthM: Double = 0
+            if capturedRoomsForFloor.indices.contains(index) {
+                let bounds = FloorPlanGeometry.bounds(of: FloorPlanGeometry.wallSegments(from: capturedRoomsForFloor[index]))
+                widthM  = Double(bounds.width)
+                lengthM = Double(bounds.height)
+            }
+            var centerXM: Double = 0
+            var centerYM: Double = 0
+            if sections.indices.contains(index) {
+                let center = sections[index].center
+                centerXM = Double(center.x)
+                centerYM = Double(center.z)
+            }
+            return Room(
+                name: scanned.name, type: scanned.type,
+                widthM: widthM, lengthM: lengthM,
+                centerXM: centerXM, centerYM: centerYM
+            )
         }
 
         let floor = Floor(

@@ -7,7 +7,7 @@ extension House {
         House(
             name: "Cluster Magnolia",
             developer: "HVMAN Property",
-            harga: "Rp 1.800.000.000",
+            harga: "1.800.000.000",
             luasTanah: "90 m²",
             catatan: "Rumah contoh untuk preview survey.",
             facing: .northEast,
@@ -31,7 +31,7 @@ extension House {
         House(
             name: "The Avani Residence",
             developer: "HVMAN Property",
-            harga: "Rp 2.450.000.000",
+            harga: "2.450.000.000",
             luasTanah: "120 m²",
             catatan: "Unit dummy untuk dashboard dan report.",
             facing: .east,

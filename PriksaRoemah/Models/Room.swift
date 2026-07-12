@@ -10,6 +10,12 @@ struct Room: Identifiable, Hashable {
     var widthM: Double = 0
     var lengthM: Double = 0
 
+    /// Titik tengah ruangan (bounding box) di koordinat 2D yang SAMA dengan
+    /// Floor.wallSegments — dipakai buat naruh label nama+ukuran di atas denah
+    /// (FloorPlan2DView). 0,0 kalau belum ke-compute.
+    var centerXM: Double = 0
+    var centerYM: Double = 0
+
     var formattedDimensions: String {
         guard widthM > 0, lengthM > 0 else { return "– x – m" }
         return String(format: "%.0f x %.0f m", widthM, lengthM)

@@ -113,7 +113,7 @@ struct ReviewScanView: View {
                     if showIn3D {
                         House3DView(usdzURL: floor.usdzURL)
                     } else {
-                        FloorPlan2DView(wallSegments: floor.wallSegments)
+                        FloorPlan2DView(wallSegments: floor.wallSegments, rooms: floor.rooms)
                             .frame(height: 300)
                             .padding(.horizontal, 30)
                     }
