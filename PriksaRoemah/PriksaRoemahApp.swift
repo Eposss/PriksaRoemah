@@ -9,9 +9,17 @@ import SwiftUI
 
 @main
 struct PriksaRoemahApp: App {
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+
     var body: some Scene {
         WindowGroup {
-            HomeView()
+            if hasCompletedOnboarding {
+                HomeView()
+            } else {
+                OnboardingView {
+                    withAnimation { hasCompletedOnboarding = true }
+                }
+            }
         }
     }
 }
