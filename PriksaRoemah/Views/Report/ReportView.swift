@@ -76,8 +76,10 @@ struct ReportView: View {
             ZStack(alignment: .topTrailing) {
                 Group {
                     if showIn3D {
+                        // Lebih tinggi dari 2D — SCNView butuh lebih banyak
+                        // ruang biar hasil pinch-zoom nggak keliatan pecah.
                         House3DView(usdzURL: floor.usdzURL)
-                            .frame(height: 300)
+                            .frame(height: 420)
                     } else {
                         FloorPlan2DView(wallSegments: floor.wallSegments, rooms: floor.rooms)
                             .frame(height: 300)

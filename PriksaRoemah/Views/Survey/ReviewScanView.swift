@@ -106,21 +106,25 @@ struct ReviewScanView: View {
 
     @ViewBuilder
     private var previewContent: some View {
-        VStack {
-            Spacer()
-            if let floor {
-                Group {
-                    if showIn3D {
-                        House3DView(usdzURL: floor.usdzURL)
-                    } else {
-                        FloorPlan2DView(wallSegments: floor.wallSegments, rooms: floor.rooms)
-                            .frame(height: 300)
-                            .padding(.horizontal, 30)
-                    }
+        if let floor {
+            if showIn3D {
+                // Full-bleed (bukan dipusatin kayak 2D) — kotak kecil bikin
+                // hasil pinch-zoom keliatan pecah karena SCNView-nya sendiri
+                // sempit. Padding atas/bawah cuma buat ngasih ruang toolbar &
+                // sheet peek di bawahnya, bukan buat ngecilin model.
+                House3DView(usdzURL: floor.usdzURL)
+                    .padding(.top, 110)
+                    .padding(.bottom, 210)
+            } else {
+                VStack {
+                    Spacer()
+                    FloorPlan2DView(wallSegments: floor.wallSegments, rooms: floor.rooms)
+                        .frame(height: 300)
+                        .padding(.horizontal, 30)
+                    Spacer()
+                    Spacer()
                 }
             }
-            Spacer()
-            Spacer()
         }
     }
 
