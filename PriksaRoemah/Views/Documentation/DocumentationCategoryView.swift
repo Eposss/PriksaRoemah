@@ -19,6 +19,7 @@ struct DocumentationCategoryView: View {
     @State private var selectedIDs: Set<UUID> = []
     @State private var showAddSheet = false
     @State private var showDeleteConfirm = false
+    @State private var preview: PhotoPreviewRequest?
 
     private var photos: [DocumentationPhoto] {
         session.savedHouses.first { $0.id == houseID }?
@@ -30,8 +31,8 @@ struct DocumentationCategoryView: View {
     var body: some View {
         ScrollView {
             LazyVGrid(columns: columns, spacing: 16) {
-                ForEach(photos) { photo in
-                    photoCard(photo)
+                ForEach(Array(photos.enumerated()), id: \.element.id) { index, photo in
+                    photoCard(photo, index: index)
                 }
             }
             .padding()
@@ -87,13 +88,19 @@ struct DocumentationCategoryView: View {
         } message: {
             Text("Tindakan ini tidak bisa dibatalkan dan foto akan dihapus permanen.")
         }
+        .fullScreenCover(item: $preview) { request in
+            DocumentationPhotoPreviewView(photos: request.photos, selectedIndex: request.index)
+        }
     }
 
-    private func photoCard(_ photo: DocumentationPhoto) -> some View {
+    private func photoCard(_ photo: DocumentationPhoto, index: Int) -> some View {
         let isSelected = selectedIDs.contains(photo.id)
         return Button {
-            guard isSelecting else { return }
-            if isSelected { selectedIDs.remove(photo.id) } else { selectedIDs.insert(photo.id) }
+            if isSelecting {
+                if isSelected { selectedIDs.remove(photo.id) } else { selectedIDs.insert(photo.id) }
+            } else {
+                preview = PhotoPreviewRequest(photos: photos, index: index)
+            }
         } label: {
             VStack(alignment: .leading, spacing: 6) {
                 ZStack(alignment: .topTrailing) {

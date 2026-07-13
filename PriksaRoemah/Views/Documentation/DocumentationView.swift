@@ -17,6 +17,7 @@ struct DocumentationView: View {
     let houseID: UUID
 
     @State private var showAddSheet = false
+    @State private var preview: PhotoPreviewRequest?
 
     private var house: House? { session.savedHouses.first { $0.id == houseID } }
 
@@ -61,6 +62,9 @@ struct DocumentationView: View {
         .sheet(isPresented: $showAddSheet) {
             AddDocumentationPhotoSheet(session: session, houseID: houseID)
         }
+        .fullScreenCover(item: $preview) { request in
+            DocumentationPhotoPreviewView(photos: request.photos, selectedIndex: request.index)
+        }
     }
 
     private var emptyState: some View {
@@ -99,30 +103,44 @@ struct DocumentationView: View {
             .padding(.horizontal)
 
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                ForEach(photos.prefix(2)) { photo in
-                    photoCard(photo)
+                ForEach(Array(photos.prefix(2).enumerated()), id: \.element.id) { index, photo in
+                    photoCard(photo, allPhotosInGroup: photos, index: index)
                 }
             }
             .padding(.horizontal)
         }
     }
 
-    private func photoCard(_ photo: DocumentationPhoto) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if let uiImage = UIImage(data: photo.imageData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(height: 130)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .clipped()
+    private func photoCard(_ photo: DocumentationPhoto, allPhotosInGroup: [DocumentationPhoto], index: Int) -> some View {
+        Button {
+            preview = PhotoPreviewRequest(photos: allPhotosInGroup, index: index)
+        } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                if let uiImage = UIImage(data: photo.imageData) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(height: 130)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .clipped()
+                }
+                Text("NOTE").font(.caption2).foregroundStyle(.secondary)
+                Text(photo.note.isEmpty ? "–" : photo.note)
+                    .font(.caption)
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
             }
-            Text("NOTE").font(.caption2).foregroundStyle(.secondary)
-            Text(photo.note.isEmpty ? "–" : photo.note)
-                .font(.caption)
-                .lineLimit(2)
         }
+        .buttonStyle(.plain)
     }
+}
+
+/// Item buat `.fullScreenCover(item:)` — bungkus foto-foto 1 grup + index yang
+/// ditap sekaligus, biar nggak ada race antara 2 @State kepisah pas kebuka.
+struct PhotoPreviewRequest: Identifiable {
+    let id = UUID()
+    let photos: [DocumentationPhoto]
+    let index: Int
 }
 
 #Preview {

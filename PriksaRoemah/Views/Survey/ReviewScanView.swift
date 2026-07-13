@@ -253,6 +253,7 @@ struct ReviewScanView: View {
                             confirmTapped()
                         } label: {
                             Image(systemName: "checkmark")
+                                .foregroundStyle(canSave ? Color.orange : Color.secondary)
                         }
                         .disabled(!canSave)
                     }

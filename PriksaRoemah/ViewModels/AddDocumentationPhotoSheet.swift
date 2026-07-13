@@ -24,6 +24,14 @@ struct AddDocumentationPhotoSheet: View {
     @State private var roomType: RoomType
     @State private var note: String = ""
 
+    @State private var showSourceDialog = false
+    @State private var showCamera = false
+    @State private var showLibraryPicker = false
+
+    private var isCameraAvailable: Bool {
+        UIImagePickerController.isSourceTypeAvailable(.camera)
+    }
+
     init(session: SurveySession, houseID: UUID, defaultRoomType: RoomType = .bedroom) {
         self.session = session
         self.houseID = houseID
@@ -56,6 +64,7 @@ struct AddDocumentationPhotoSheet: View {
                         save()
                     } label: {
                         Image(systemName: "checkmark")
+                            .foregroundStyle(imageData == nil ? Color.secondary : Color.orange)
                     }
                     .disabled(imageData == nil)
                 }
@@ -70,21 +79,44 @@ struct AddDocumentationPhotoSheet: View {
                     .resizable()
                     .scaledToFit()
                     .frame(maxHeight: 280)
+                    .onTapGesture { showSourceDialog = true }
             } else {
-                PhotosPicker(selection: $pickerItem, matching: .images) {
+                Button {
+                    showSourceDialog = true
+                } label: {
                     VStack(spacing: 10) {
                         Image(systemName: "camera.fill")
                             .font(.system(size: 32))
                         Text("Pilih atau ambil foto")
                             .font(.subheadline)
                     }
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.orange)
                     .frame(maxWidth: .infinity)
                     .frame(height: 220)
-                    .background(Color(.systemGray6))
+                    .background(Color(.secondarySystemGroupedBackground))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .strokeBorder(Color.orange.opacity(0.4), style: StrokeStyle(lineWidth: 1.5, dash: [6]))
+                            .padding(1)
+                    )
                 }
+                .buttonStyle(.plain)
             }
         }
+        .confirmationDialog("Add Photo", isPresented: $showSourceDialog, titleVisibility: .visible) {
+            if isCameraAvailable {
+                Button("Take Photo") { showCamera = true }
+            }
+            Button("Choose from Library") { showLibraryPicker = true }
+            Button("Cancel", role: .cancel) {}
+        }
+        .fullScreenCover(isPresented: $showCamera) {
+            InspectionCameraPicker { uiImage in
+                imageData = uiImage.jpegData(compressionQuality: 0.85)
+            }
+            .ignoresSafeArea()
+        }
+        .photosPicker(isPresented: $showLibraryPicker, selection: $pickerItem, matching: .images)
         .onChange(of: pickerItem) { _, newItem in
             Task {
                 if let data = try? await newItem?.loadTransferable(type: Data.self) {
