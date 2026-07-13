@@ -20,6 +20,9 @@ struct Floor: Identifiable, Hashable {
     var usdzURL: URL?
     var wallSegments: [WallSegment2D] = []
 
+    /// Pintu/jendela/opening lantai ini, buat digambar di denah 2D.
+    var openings: [Opening2D] = []
+
     // Metrics khusus lantai ini
     var floorAreaSqM: Double
     var wallAreaSqM: Double

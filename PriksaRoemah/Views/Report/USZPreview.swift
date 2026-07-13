@@ -13,6 +13,12 @@ import SceneKit
 
 struct USDZPreviewView: UIViewRepresentable {
     let url: URL
+    /// Dipanggil tiap user tap: elemen terukur, atau nil kalau tap area kosong.
+    var onSelect: (MeasuredElement?) -> Void = { _ in }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onSelect: onSelect)
+    }
 
     func makeUIView(context: Context) -> SCNView {
         let view = SCNView()
@@ -25,10 +31,19 @@ struct USDZPreviewView: UIViewRepresentable {
         // punya sedikit pixel buat gambar tiap edge.
         view.contentScaleFactor = UIScreen.main.scale
         loadScene(into: view)
+
+        context.coordinator.view = view
+        let tap = UITapGestureRecognizer(target: context.coordinator,
+                                         action: #selector(Coordinator.handleTap(_:)))
+        tap.delegate = context.coordinator   // biar barengan sama gesture kamera
+        view.addGestureRecognizer(tap)
+
         return view
     }
 
-    func updateUIView(_ uiView: SCNView, context: Context) {}
+    func updateUIView(_ uiView: SCNView, context: Context) {
+        context.coordinator.onSelect = onSelect
+    }
 
     private func loadScene(into view: SCNView) {
         guard let scene = try? SCNScene(url: url, options: nil) else { return }
@@ -40,6 +55,57 @@ struct USDZPreviewView: UIViewRepresentable {
         // zoomed-in banget dan bikin user kaget. User masih bisa pinch/pan/
         // rotate bebas dari titik awal ini (allowsCameraControl tetap nyala).
         view.pointOfView = RoomPlanSceneStyle.framingCamera(for: scene)
+    }
+
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        weak var view: SCNView?
+        var onSelect: (MeasuredElement?) -> Void
+
+        private weak var highlighted: SCNNode?
+        private var savedEmission: [(material: SCNMaterial, contents: Any?)] = []
+
+        init(onSelect: @escaping (MeasuredElement?) -> Void) {
+            self.onSelect = onSelect
+        }
+
+        @objc func handleTap(_ gr: UITapGestureRecognizer) {
+            guard let view else { return }
+            let point = gr.location(in: view)
+            let hits = view.hitTest(point, options: [
+                .searchMode: SCNHitTestSearchMode.closest.rawValue
+            ])
+            if let hitNode = hits.first?.node,
+               let named = RoomPlanMeasure.namedElementNode(from: hitNode) {
+                highlight(named)
+                onSelect(RoomPlanMeasure.element(for: named))
+            } else {
+                clearHighlight()
+                onSelect(nil)
+            }
+        }
+
+        private func highlight(_ node: SCNNode) {
+            guard node !== highlighted else { return }
+            clearHighlight()
+            guard let materials = node.geometry?.materials else { return }
+            for m in materials {
+                savedEmission.append((m, m.emission.contents))
+                m.emission.contents = UIColor(red: 0.910, green: 0.349, blue: 0.090, alpha: 1)
+            }
+            highlighted = node
+        }
+
+        private func clearHighlight() {
+            for saved in savedEmission { saved.material.emission.contents = saved.contents }
+            savedEmission.removeAll()
+            highlighted = nil
+        }
+
+        // Jalan barengan dengan gesture orbit/pinch/pan bawaan allowsCameraControl.
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                               shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
+            true
+        }
     }
 }
 
@@ -57,7 +123,7 @@ struct USDZPreviewView: UIViewRepresentable {
 enum RoomPlanSceneStyle {
 
     /// Sama persis dengan RoomPlan.CapturedRoom.Object.Category.allCases (lowercased).
-    private static let furnitureCategories: Set<String> = [
+    static let furnitureCategories: Set<String> = [
         "storage", "refrigerator", "stove", "bed", "sink", "washerdryer",
         "toilet", "bathtub", "oven", "dishwasher", "table", "sofa",
         "chair", "fireplace", "television", "stairs"
@@ -145,19 +211,124 @@ enum RoomPlanSceneStyle {
     }
 }
 
+// MARK: - Tap-to-measure
+
+/// Hasil pengukuran satu elemen yang di-tap di 3D view — nama + ukuran (meter).
+struct MeasuredElement: Equatable {
+    let label: String
+    let detail: String
+}
+
+/// Menghitung ukuran nyata (meter) tiap node hasil export RoomPlan, berdasarkan
+/// NAMA node ("Wall0", "Door0", "Window0", "Floor0", atau "<Category><index>"
+/// buat furniture) + bounding box-nya. Dipisah dari view supaya bisa dites
+/// sintetis (lihat #Preview) tanpa perlu file USDZ / device.
+enum RoomPlanMeasure {
+
+    private static let structuralNames: Set<String> = ["wall", "door", "window", "opening", "floor"]
+
+    /// Nama tampil yang lebih ramah dari base-name node RoomPlan.
+    private static func displayLabel(for base: String) -> String {
+        switch base {
+        case "washerdryer": return "Washer / Dryer"
+        case "television":  return "Television"
+        default:            return base.prefix(1).uppercased() + base.dropFirst()
+        }
+    }
+
+    /// Base-name: strip index angka di belakang + lowercase. "Table0" -> "table".
+    private static func baseName(_ name: String?) -> String? {
+        guard var n = name?.lowercased() else { return nil }
+        while let last = n.last, last.isNumber { n.removeLast() }
+        return n.isEmpty ? nil : n
+    }
+
+    private static func isKnownElement(_ base: String) -> Bool {
+        structuralNames.contains(base) || RoomPlanSceneStyle.furnitureCategories.contains(base)
+    }
+
+    /// Cari node "bermakna" mulai dari node yang ke-hit, naik ke parent kalau
+    /// perlu (kadang geometry ada di child tanpa nama).
+    static func namedElementNode(from node: SCNNode) -> SCNNode? {
+        var current: SCNNode? = node
+        while let n = current {
+            if let base = baseName(n.name), isKnownElement(base) { return n }
+            current = n.parent
+        }
+        return nil
+    }
+
+    /// Ukuran node dalam meter: extent bounding box lokal × skala world-transform
+    /// per-sumbu (robust terhadap unit-scale RoomPlan/USD yang kadang ditaruh di
+    /// node root, bukan di node elemennya sendiri).
+    static func worldSize(of node: SCNNode) -> SIMD3<Float> {
+        let (minB, maxB) = node.boundingBox
+        let local = SIMD3<Float>(
+            Float(maxB.x - minB.x),
+            Float(maxB.y - minB.y),
+            Float(maxB.z - minB.z)
+        )
+        let wt = node.simdWorldTransform
+        let sx = simd_length(SIMD3<Float>(wt.columns.0.x, wt.columns.0.y, wt.columns.0.z))
+        let sy = simd_length(SIMD3<Float>(wt.columns.1.x, wt.columns.1.y, wt.columns.1.z))
+        let sz = simd_length(SIMD3<Float>(wt.columns.2.x, wt.columns.2.y, wt.columns.2.z))
+        return SIMD3<Float>(local.x * sx, local.y * sy, local.z * sz)
+    }
+
+    static func element(for node: SCNNode) -> MeasuredElement? {
+        guard let named = namedElementNode(from: node),
+              let base = baseName(named.name), isKnownElement(base) else { return nil }
+
+        let s = worldSize(of: named)
+        func f(_ v: Float) -> String { String(format: "%.2f", v) }
+
+        let detail: String
+        switch base {
+        case "wall", "door", "window", "opening":
+            // x = panjang/lebar bukaan, y = tinggi. Ketebalan (z) di-skip
+            // karena surface RoomPlan tipis (~0) dan angkanya noisy.
+            detail = "\(f(s.x)) × \(f(s.y)) m"
+        case "floor":
+            detail = "\(f(s.x)) × \(f(s.z)) m"
+        default:
+            // Furniture: W × D × H (x × z × y).
+            detail = "\(f(s.x)) × \(f(s.z)) × \(f(s.y)) m"
+        }
+        return MeasuredElement(label: displayLabel(for: base), detail: detail)
+    }
+}
+
 /// Wrapper dengan empty state kalau USDZ belum ada (mis. belum ada ruangan yang
 /// di-scan). Nggak nge-set height sendiri — ngisi penuh apa pun yang dikasih
 /// parent (lihat pemanggilnya di ReviewScanView/ReportView), soalnya preview
 /// yang kekecilan bikin hasil pinch-zoom keliatan pecah/blocky.
 struct House3DView: View {
     let usdzURL: URL?
+    @State private var selected: MeasuredElement?
 
     var body: some View {
         Group {
             if let usdzURL {
-                USDZPreviewView(url: usdzURL)
+                USDZPreviewView(url: usdzURL) { selected = $0 }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(alignment: .top) {
+                        if selected == nil {
+                            Text("Tap an element to measure")
+                                .font(.footnote.weight(.medium))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(.ultraThinMaterial, in: Capsule())
+                                .padding(.top, 12)
+                        }
+                    }
+                    .overlay(alignment: .bottom) {
+                        if let selected {
+                            measurementCallout(selected)
+                                .padding(16)
+                        }
+                    }
             } else {
                 RoundedRectangle(cornerRadius: 14)
                     .fill(Color(.systemGray6))
@@ -175,6 +346,31 @@ struct House3DView: View {
             }
         }
         .padding(.horizontal)
+    }
+
+    private func measurementCallout(_ element: MeasuredElement) -> some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(element.label)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                Text(element.detail)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(Color(red: 0.910, green: 0.349, blue: 0.090))
+            }
+            Spacer()
+            Button {
+                selected = nil
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .frame(maxWidth: .infinity)
     }
 }
 

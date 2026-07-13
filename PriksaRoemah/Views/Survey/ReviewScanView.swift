@@ -118,7 +118,7 @@ struct ReviewScanView: View {
             } else {
                 VStack {
                     Spacer()
-                    FloorPlan2DView(wallSegments: floor.wallSegments, rooms: floor.rooms)
+                    FloorPlan2DView(wallSegments: floor.wallSegments, rooms: floor.rooms, openings: floor.openings, showDimensions: true)
                         .frame(height: 300)
                         .padding(.horizontal, 30)
                     Spacer()

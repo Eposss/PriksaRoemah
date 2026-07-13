@@ -93,6 +93,7 @@ final class SurveySession: ObservableObject {
 
         var usdzURL: URL?
         var wallSegments: [WallSegment2D] = []
+        var openings: [Opening2D] = []
 
         // Titik tengah tiap ruangan diambil dari CapturedStructure.sections
         // (BUKAN dari CapturedRoom.identifier matching — percobaan sebelumnya
@@ -111,6 +112,7 @@ final class SurveySession: ObservableObject {
             do {
                 let structure = try await roomPlan.buildStructure(from: capturedRoomsForFloor)
                 wallSegments  = FloorPlanGeometry.wallSegments(from: structure)
+                openings      = FloorPlanGeometry.openings(from: structure)
                 sections      = structure.sections
                 let url       = FileManager.default.temporaryDirectory
                     .appendingPathComponent("\(UUID().uuidString).usdz")
@@ -120,6 +122,7 @@ final class SurveySession: ObservableObject {
                 print("[SurveySession] StructureBuilder gagal untuk \(floorLabel), fallback:", error)
                 if let first = capturedRoomsForFloor.first {
                     wallSegments = FloorPlanGeometry.wallSegments(from: first)
+                    openings     = FloorPlanGeometry.openings(from: first)
                     let url      = FileManager.default.temporaryDirectory
                         .appendingPathComponent("\(UUID().uuidString).usdz")
                     try? first.export(to: url)
@@ -167,6 +170,7 @@ final class SurveySession: ObservableObject {
             rooms:          rooms,
             usdzURL:        usdzURL,
             wallSegments:   wallSegments,
+            openings:       openings,
             floorAreaSqM:   computeFloorArea(from: wallSegments),
             wallAreaSqM:    computeWallArea(for: capturedRoomsForFloor),
             ceilingHeightM: computeCeilingHeight(for: capturedRoomsForFloor)
