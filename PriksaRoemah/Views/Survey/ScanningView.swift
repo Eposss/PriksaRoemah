@@ -14,6 +14,7 @@ struct ScanningView: View {
     @State private var pendingRoomName = ""
     @State private var pendingType: RoomType = .bedroom
     @State private var roomCounter = 1
+    @State private var showInstructions = true
 
     var body: some View {
         ZStack {
@@ -50,9 +51,19 @@ struct ScanningView: View {
                 scanButton
                     .padding(.bottom, 24)
             }
+
+            if showInstructions {
+                InstructionView {
+                    withAnimation { showInstructions = false }
+                }
+                .transition(.opacity)
+            }
         }
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .tabBar)
+        .onAppear {
+            session.roomPlan.startPreview()
+        }
         .onReceive(session.$capturedRoom) { room in
             guard room != nil else { return }
             pendingRoomName = "Room \(roomCounter)"

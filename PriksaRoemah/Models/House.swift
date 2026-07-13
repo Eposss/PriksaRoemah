@@ -44,6 +44,7 @@ struct House: Identifiable, Hashable {
     var harga: String
     var luasTanah: String
     var catatan: String
+    var createdAt: Date = Date()
 
     /// Otomatis terdeteksi dari compass (heading device) saat lantai pertama selesai
     /// discan — lihat CompassService & SurveySession. Tidak ada input manual lagi.
@@ -73,6 +74,37 @@ struct House: Identifiable, Hashable {
 
     var roomCount: Int {
         floors.reduce(0) { $0 + $1.roomCount }
+    }
+
+    /// Jumlah kamar tidur & kamar mandi digabung dari semua lantai — dipakai
+    /// di HouseCard (ikon bed / shower).
+    var bedroomCount: Int {
+        floors.reduce(0) { $0 + $1.rooms.filter { $0.type == .bedroom }.count }
+    }
+    var bathroomCount: Int {
+        floors.reduce(0) { $0 + $1.rooms.filter { $0.type == .bathroom }.count }
+    }
+
+    var formattedDate: String {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        return f.string(from: createdAt)
+    }
+
+    /// Tag luas ringkas ("140m²") buat kartu koleksi.
+    var formattedAreaTag: String {
+        floorAreaSqM > 0 ? String(format: "%.0fm²", floorAreaSqM) : "–m²"
+    }
+
+    /// Harga ringkas: "Rp 1.8 M" / "Rp 999.9 Jt". Tahan input yang sudah
+    /// mengandung pemisah ribuan ("1.800.000.000") karena hanya baca digit-nya.
+    var formattedPriceShort: String {
+        let digitsOnly = harga.filter(\.isNumber)
+        guard let value = Double(digitsOnly), value > 0 else { return "Rp \(harga)" }
+        if value >= 1_000_000_000 {
+            return String(format: "Rp %.1f M", value / 1_000_000_000)
+        }
+        return String(format: "Rp %.1f Jt", value / 1_000_000)
     }
 
     var floorAreaSqM: Double {

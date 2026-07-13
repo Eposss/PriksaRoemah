@@ -20,6 +20,17 @@ final class RoomPlanManager: ObservableObject {
     /// Akses langsung ke ARSession yang dipakai RoomPlan.
     var arSession: ARSession? { captureView?.captureSession.arSession }
 
+    /// Nyalakan kamera live (ARSession world tracking) TANPA memulai RoomPlan
+    /// capture — dipakai supaya feed kamera sudah kelihatan (di-blur di balik
+    /// layar instruksi) sebelum user benar-benar menekan "Start Scan".
+    func startPreview() {
+        guard let arSession = captureView?.captureSession.arSession else {
+            print("[RoomPlanManager] captureView belum di-set — tidak bisa startPreview().")
+            return
+        }
+        arSession.run(ARWorldTrackingConfiguration())
+    }
+
     func start() {
         guard let captureView else {
             print("[RoomPlanManager] captureView belum di-set — pastikan RoomPlanContainer sudah muncul di layar sebelum start() dipanggil.")
