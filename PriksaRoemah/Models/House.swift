@@ -8,6 +8,7 @@ struct House: Identifiable, Hashable {
     var harga: String
     var luasTanah: String
     var catatan: String
+    var createdAt: Date = Date()
 
     var rooms: [Room]
 
@@ -24,6 +25,35 @@ struct House: Identifiable, Hashable {
 
     var roomCount: Int {
         rooms.count
+    }
+
+    var bedroomCount: Int {
+        rooms.filter { $0.type == .bedroom }.count
+    }
+
+    var bathroomCount: Int {
+        rooms.filter { $0.type == .bathroom }.count
+    }
+
+    var formattedDate: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter.string(from: createdAt)
+    }
+
+    /// Building/floor tags share this since the model doesn't distinguish
+    /// building footprint from floor area yet.
+    var formattedAreaTag: String {
+        floorAreaSqM > 0 ? String(format: "%.0fm²", floorAreaSqM) : "–m²"
+    }
+
+    var formattedPriceShort: String {
+        let digitsOnly = harga.filter(\.isNumber)
+        guard let value = Double(digitsOnly), value > 0 else { return "Rp \(harga)" }
+        if value >= 1_000_000_000 {
+            return String(format: "Rp %.1f M", value / 1_000_000_000)
+        }
+        return String(format: "Rp %.1f Jt", value / 1_000_000)
     }
 
     var formattedFloorArea: String {

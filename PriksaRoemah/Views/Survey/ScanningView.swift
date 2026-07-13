@@ -10,6 +10,7 @@ struct ScanningView: View {
     @State private var pendingFloor      = "1"
     @State private var pendingRoomName   = ""
     @State private var pendingType: RoomType = .bedroom
+    @State private var showInstructions  = true
 
     private let floorOptions = ["1", "2", "3", "4"]
 
@@ -28,10 +29,21 @@ struct ScanningView: View {
                 scanButton
                     .padding(.bottom, 24)
             }
+
+            if showInstructions {
+                InstructionView {
+                    withAnimation { showInstructions = false }
+                }
+                .transition(.opacity)
+            }
         }
         .navigationTitle("Scanning")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(showInstructions ? .hidden : .visible, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
+        .onAppear {
+            session.roomPlan.startPreview()
+        }
         .onReceive(session.$capturedRoom) { room in
             guard room != nil else { return }
             showPostScanSheet = true

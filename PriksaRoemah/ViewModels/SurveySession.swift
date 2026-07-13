@@ -28,7 +28,7 @@ final class SurveySession: ObservableObject {
     @Published var catatan:    String = ""
 
     // MARK: - Collection
-    @Published var savedHouses: [House] = House.dummyAll
+    @Published var savedHouses: [House] = []
 
     // MARK: - Building progress
     @Published var isBuildingHouse = false
