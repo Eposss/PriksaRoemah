@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct HomeView: View {
 
@@ -9,6 +10,17 @@ struct HomeView: View {
     @State private var searchText = ""
     @State private var showDeleteConfirmation = false
     @State private var showDiscardInProgressAlert = false
+
+    // Thumbnail editing (kartu koleksi)
+    @State private var thumbnailHouseID: House.ID?
+    @State private var showThumbnailSourceDialog = false
+    @State private var showThumbnailCamera = false
+    @State private var showThumbnailLibrary = false
+    @State private var thumbnailPickerItem: PhotosPickerItem?
+
+    private var isCameraAvailable: Bool {
+        UIImagePickerController.isSourceTypeAvailable(.camera)
+    }
 
     private let orange = Color(red: 0.910, green: 0.349, blue: 0.090)
 
@@ -61,6 +73,31 @@ struct HomeView: View {
                 }
             } message: {
                 Text("You have an unsaved scan in progress. Starting a new survey will discard it.")
+            }
+            .confirmationDialog("Survey Photo", isPresented: $showThumbnailSourceDialog, titleVisibility: .visible) {
+                if isCameraAvailable {
+                    Button("Take Photo") { showThumbnailCamera = true }
+                }
+                Button("Choose from Library") { showThumbnailLibrary = true }
+                Button("Cancel", role: .cancel) {}
+            }
+            .fullScreenCover(isPresented: $showThumbnailCamera) {
+                InspectionCameraPicker { uiImage in
+                    if let id = thumbnailHouseID {
+                        session.setThumbnail(houseID: id, data: uiImage.jpegData(compressionQuality: 0.85))
+                    }
+                }
+                .ignoresSafeArea()
+            }
+            .photosPicker(isPresented: $showThumbnailLibrary, selection: $thumbnailPickerItem, matching: .images)
+            .onChange(of: thumbnailPickerItem) { _, newItem in
+                Task {
+                    if let data = try? await newItem?.loadTransferable(type: Data.self),
+                       let id = thumbnailHouseID {
+                        session.setThumbnail(houseID: id, data: data)
+                    }
+                    thumbnailPickerItem = nil
+                }
             }
         }
     }
@@ -173,7 +210,10 @@ struct HomeView: View {
                     HouseCard(house: house)
                 } else {
                     NavigationLink(value: SurveyRoute.floorsList(houseID: house.id)) {
-                        HouseCard(house: house)
+                        HouseCard(house: house) {
+                            thumbnailHouseID = house.id
+                            showThumbnailSourceDialog = true
+                        }
                     }
                     .buttonStyle(.plain)
                 }

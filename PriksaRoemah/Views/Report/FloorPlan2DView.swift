@@ -29,13 +29,27 @@ struct FloorPlan2DView: View {
 
     private var padding: CGFloat { showDimensions ? 44 : 24 }
 
+    /// Rotasi buat meluruskan denah (dinding dominan → sejajar sumbu). Dipakai
+    /// ke dinding, bukaan, DAN posisi label ruangan supaya semua tetap selaras.
+    private var planTransform: PlanTransform {
+        FloorPlanGeometry.normalization(for: wallSegments)
+    }
+    private var normalizedWalls: [WallSegment2D] {
+        let t = planTransform
+        return wallSegments.map(t.apply)
+    }
+    private var normalizedOpenings: [Opening2D] {
+        let t = planTransform
+        return openings.map { Opening2D(segment: t.apply($0.segment), kind: $0.kind) }
+    }
+
     var body: some View {
         Group {
             if wallSegments.isEmpty {
                 emptyState
             } else {
                 GeometryReader { geo in
-                    let bounds = FloorPlanGeometry.bounds(of: wallSegments)
+                    let bounds = FloorPlanGeometry.bounds(of: normalizedWalls)
                     let layout = projection(for: bounds, in: geo.size)
 
                     ZStack {
@@ -49,7 +63,7 @@ struct FloorPlan2DView: View {
                         }
 
                         if let layout {
-                            ForEach(rooms.filter { $0.widthM > 0 && $0.lengthM > 0 }) { room in
+                            ForEach(rooms.filter { $0.type != .other && $0.widthM > 0 && $0.lengthM > 0 }) { room in
                                 VStack(spacing: 1) {
                                     Text(room.name.uppercased())
                                     Text(room.formattedDimensions)
@@ -58,7 +72,7 @@ struct FloorPlan2DView: View {
                                 .multilineTextAlignment(.center)
                                 .foregroundStyle(.primary)
                                 .fixedSize()
-                                .position(layout.project(CGPoint(x: CGFloat(room.centerXM), y: CGFloat(room.centerYM))))
+                                .position(layout.project(planTransform.apply(CGPoint(x: CGFloat(room.centerXM), y: CGFloat(room.centerYM)))))
                             }
                         }
                     }
@@ -75,7 +89,7 @@ struct FloorPlan2DView: View {
 
     private func drawWalls(in context: inout GraphicsContext, layout: Projection) {
         var path = Path()
-        for wall in wallSegments {
+        for wall in normalizedWalls {
             path.move(to: layout.project(wall.start))
             path.addLine(to: layout.project(wall.end))
         }
@@ -86,8 +100,15 @@ struct FloorPlan2DView: View {
     /// background) biar keliatan bolong, terus tambahin simbol — pintu = busur
     /// ayun, jendela = garis tipis warna beda, opening = dibiarin bolong.
     private func drawOpenings(in context: inout GraphicsContext, layout: Projection) {
-        let center = wallsCentroid(layout: layout)
-        for opening in openings {
+        let centroid = wallsCentroid(layout: layout)
+        // Pusat tiap ruangan (di layar) — dipakai supaya pintu MEMBUKA KE DALAM
+        // ruangan terdekat (bukan ke luar / arah acak). Fallback ke centroid
+        // denah kalau nggak ada data ruangan (mis. thumbnail).
+        let roomCenters: [CGPoint] = rooms
+            .filter { !($0.centerXM == 0 && $0.centerYM == 0) }
+            .map { layout.project(planTransform.apply(CGPoint(x: CGFloat($0.centerXM), y: CGFloat($0.centerYM)))) }
+
+        for opening in normalizedOpenings {
             let p1 = layout.project(opening.segment.start)
             let p2 = layout.project(opening.segment.end)
 
@@ -98,11 +119,18 @@ struct FloorPlan2DView: View {
             context.stroke(gap, with: .color(backgroundGray), style: StrokeStyle(lineWidth: 7, lineCap: .butt))
 
             switch opening.kind {
-            case .door:  drawDoor(in: &context, p1: p1, p2: p2, interior: center)
+            case .door:
+                let mid = CGPoint(x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2)
+                let interior = nearest(to: mid, among: roomCenters) ?? centroid
+                drawDoor(in: &context, p1: p1, p2: p2, interior: interior)
             case .window: drawWindow(in: &context, p1: p1, p2: p2)
             case .opening: break   // dibiarin bolong aja
             }
         }
+    }
+
+    private func nearest(to p: CGPoint, among points: [CGPoint]) -> CGPoint? {
+        points.min(by: { hypot($0.x - p.x, $0.y - p.y) < hypot($1.x - p.x, $1.y - p.y) })
     }
 
     private func drawDoor(in context: inout GraphicsContext, p1: CGPoint, p2: CGPoint, interior: CGPoint) {
@@ -149,7 +177,7 @@ struct FloorPlan2DView: View {
 
     private func wallsCentroid(layout: Projection) -> CGPoint {
         var sx: CGFloat = 0, sy: CGFloat = 0, n: CGFloat = 0
-        for wall in wallSegments {
+        for wall in normalizedWalls {
             for p in [layout.project(wall.start), layout.project(wall.end)] {
                 sx += p.x; sy += p.y; n += 1
             }

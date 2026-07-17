@@ -29,6 +29,9 @@ enum RoomType: String, CaseIterable, Identifiable {
     case bathroom    = "Bathroom"
     case diningRoom  = "Dining Room"
     case garage      = "Garage"
+    /// Ruangan yang tidak ingin dilabeli di denah (mis. koridor, area transisi).
+    /// Tidak ditampilkan namanya di FloorPlan2DView.
+    case other       = "Other"
 
     var id: String { rawValue }
 
@@ -40,6 +43,7 @@ enum RoomType: String, CaseIterable, Identifiable {
         case .bathroom:    return "shower.fill"
         case .diningRoom:  return "table.furniture"
         case .garage:      return "car.fill"
+        case .other:       return "square.dashed"
         }
     }
 }

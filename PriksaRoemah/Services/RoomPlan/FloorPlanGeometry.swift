@@ -32,6 +32,25 @@ struct Opening2D: Hashable {
     var kind: OpeningKind
 }
 
+/// Rotasi buat "meluruskan" denah supaya dinding dominan sejajar sumbu layar
+/// (bukan miring ngikutin orientasi ARSession waktu mulai scan). Diputar di
+/// sekitar `pivot` (pusat denah) supaya posisinya nggak geser.
+struct PlanTransform {
+    var angle: CGFloat        // radian
+    var pivot: CGPoint
+
+    func apply(_ p: CGPoint) -> CGPoint {
+        let c = cos(angle), s = sin(angle)
+        let dx = p.x - pivot.x, dy = p.y - pivot.y
+        return CGPoint(x: pivot.x + dx * c - dy * s,
+                       y: pivot.y + dx * s + dy * c)
+    }
+
+    func apply(_ seg: WallSegment2D) -> WallSegment2D {
+        WallSegment2D(start: apply(seg.start), end: apply(seg.end))
+    }
+}
+
 enum FloorPlanGeometry {
 
     /// Dinding dari satu CapturedRoom (dipakai kalau StructureBuilder gagal / cuma 1 ruangan)
@@ -71,6 +90,26 @@ enum FloorPlanGeometry {
             start: CGPoint(x: Double(p1.x), y: Double(p1.z)),
             end:   CGPoint(x: Double(p2.x), y: Double(p2.z))
         )
+    }
+
+    /// Hitung rotasi buat meluruskan denah: ambil dinding TERPANJANG, lipat
+    /// sudutnya ke kelipatan 90° terdekat, lalu putar balik sebesar deviasinya
+    /// — jadi dinding utama nempel ke sumbu horizontal/vertikal & denah nggak
+    /// miring. Diputar di sekitar pusat bounding box biar posisi tetap.
+    static func normalization(for segments: [WallSegment2D]) -> PlanTransform {
+        let b = bounds(of: segments)
+        let pivot = CGPoint(x: b.midX, y: b.midY)
+        guard !segments.isEmpty else { return PlanTransform(angle: 0, pivot: pivot) }
+
+        var longest: (len: CGFloat, angle: CGFloat) = (0, 0)
+        for s in segments {
+            let dx = s.end.x - s.start.x, dy = s.end.y - s.start.y
+            let len = hypot(dx, dy)
+            if len > longest.len { longest = (len, atan2(dy, dx)) }
+        }
+        let quarter = CGFloat.pi / 2
+        let deviation = longest.angle - (longest.angle / quarter).rounded() * quarter
+        return PlanTransform(angle: -deviation, pivot: pivot)
     }
 
     /// Bounding box semua segment — dipakai buat auto-fit scale saat digambar

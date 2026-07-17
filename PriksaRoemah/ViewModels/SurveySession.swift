@@ -31,8 +31,13 @@ final class SurveySession: ObservableObject {
     @Published var luasTanah:  String = ""
     @Published var catatan:    String = ""
 
+    /// Arah hadap yang di-LOCK manual oleh user (arahin HP ke depan rumah lalu
+    /// tekan Lock di compass). Kalau diisi, ini yang dipakai — bukan snapshot
+    /// heading otomatis yang arah HP-nya sembarangan waktu save.
+    @Published var lockedFacing: HouseFacing?
+
     // MARK: - Collection
-    @Published var savedHouses: [House] = House.dummyAll
+    @Published var savedHouses: [House] = []
 
     // MARK: - Building progress
     @Published var isBuildingFloor = false
@@ -219,7 +224,7 @@ final class SurveySession: ObservableObject {
             harga:     harga,
             luasTanah: luasTanah,
             catatan:   catatan,
-            facing:    detectedFacing,
+            facing:    lockedFacing ?? detectedFacing,
             floors:    floor.map { [$0] } ?? []
         )
 
@@ -227,6 +232,7 @@ final class SurveySession: ObservableObject {
         pendingFloor = nil
         currentFloorNumber = 1
         houseName = ""; harga = ""; luasTanah = ""; catatan = ""
+        lockedFacing = nil
         return house
     }
 
@@ -250,6 +256,7 @@ final class SurveySession: ObservableObject {
         harga     = ""
         luasTanah = ""
         catatan   = ""
+        lockedFacing = nil
         capturedRoom = nil
         compass.start()
     }
@@ -269,6 +276,12 @@ final class SurveySession: ObservableObject {
     func addDocumentationPhoto(houseID: UUID, photo: DocumentationPhoto) {
         guard let hIndex = savedHouses.firstIndex(where: { $0.id == houseID }) else { return }
         savedHouses[hIndex].documentationPhotos.append(photo)
+    }
+
+    /// Set/ganti foto thumbnail rumah (dari kartu koleksi).
+    func setThumbnail(houseID: UUID, data: Data?) {
+        guard let hIndex = savedHouses.firstIndex(where: { $0.id == houseID }) else { return }
+        savedHouses[hIndex].thumbnailData = data
     }
 
     func deleteDocumentationPhotos(houseID: UUID, photoIDs: Set<UUID>) {

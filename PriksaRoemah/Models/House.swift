@@ -46,6 +46,10 @@ struct House: Identifiable, Hashable {
     var catatan: String
     var createdAt: Date = Date()
 
+    /// Foto thumbnail rumah (dipilih/diambil user) buat kartu koleksi. Nil =
+    /// tampilkan placeholder.
+    var thumbnailData: Data?
+
     /// Otomatis terdeteksi dari compass (heading device) saat lantai pertama selesai
     /// discan — lihat CompassService & SurveySession. Tidak ada input manual lagi.
     var facing: HouseFacing?

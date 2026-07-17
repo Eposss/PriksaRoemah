@@ -3,6 +3,8 @@ import SwiftUI
 struct HouseCard: View {
 
     let house: House
+    /// Kalau diisi, thumbnail dapat tombol kamera buat ganti/ambil foto.
+    var onEditThumbnail: (() -> Void)? = nil
 
     private let tagBackground = Color(red: 1.0, green: 0.902, blue: 0.859)
     private let tagForeground = Color(red: 0.898, green: 0.337, blue: 0.086)
@@ -77,9 +79,33 @@ struct HouseCard: View {
     }
 
     private var thumbnail: some View {
-        RoundedRectangle(cornerRadius: 10)
-            .fill(Color(white: 0.949))
+        Color(white: 0.949)
             .aspectRatio(368.0 / 198.0, contentMode: .fit)
+            .overlay {
+                if let data = house.thumbnailData, let ui = UIImage(data: data) {
+                    Image(uiImage: ui)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    Image(systemName: "photo")
+                        .font(.system(size: 28))
+                        .foregroundStyle(Color(white: 0.72))
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(alignment: .bottomTrailing) {
+                if let onEditThumbnail {
+                    Button(action: onEditThumbnail) {
+                        Image(systemName: "camera.fill")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 32, height: 32)
+                            .background(.black.opacity(0.45), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(8)
+                }
+            }
     }
 
     private func areaTag(_ value: String, suffix: String) -> some View {
